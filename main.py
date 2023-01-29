@@ -42,7 +42,7 @@ def convert_to_avif(file_path):
 
     # Write the AVIF image to disk
     try:
-        with open(os.path.join("/opt/photos/output", file_name + ".avif"), "wb") as f:
+        with open(os.path.join("/opt/images-to-avif/output", file_name + ".avif"), "wb") as f:
             f.write(avif_image)
     except Exception as e:
         logging.error(f"Error writing {file_name}: {e}")
@@ -55,16 +55,21 @@ def convert_to_avif(file_path):
 
 def main():
     # Get the list of photo files in the input directory
-    input_dir = "/opt/photos/input"
+    input_dir = "/opt/images-to-avif/input"
     file_paths = [os.path.join(input_dir, file_name) for file_name in os.listdir(input_dir) if
                   file_name.endswith((".png", ".jpg"))]
 
     # Start a separate thread for each photo
     threads = []
     for file_path in file_paths:
-        t = threading.Thread(target=convert_to_avif, args=(file_path,))
-        t.start()
-        threads.append(t)
+        while True:
+            if threading.active_count() < 32:
+                t = threading.Thread(target=convert_to_avif, args=(file_path,))
+                t.start()
+                threads.append(t)
+                break
+            else:
+                continue
 
     # Wait for all threads to finish
     for t in threads:
