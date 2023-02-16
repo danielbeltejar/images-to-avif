@@ -57,7 +57,7 @@ def main():
     # Get the list of photo files in the input directory
     input_dir = "/opt/images-to-avif/input"
     file_paths = [os.path.join(input_dir, file_name) for file_name in os.listdir(input_dir) if
-                  file_name.endswith((".png", ".jpg"))]
+                  file_name.endswith((".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".heic", ".HEIC"))]
 
     # Start a separate thread for each photo
     threads = []
