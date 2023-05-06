@@ -5,6 +5,7 @@ import time
 from PIL import Image
 from PIL.Image import Exif
 from pillow_heif import register_heif_opener
+import pillow_avif
 
 from utils.pretty_file_size import get_pretty_file_size
 
@@ -33,7 +34,6 @@ class Picture(object):
         extensions = [".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".heic", ".HEIC", ".heif", ".HEIF"]
         for ext in extensions:
             self.picture_file_name = self.picture_file_name.replace(ext, "")
-            break
 
         self.convert()
 
@@ -48,10 +48,12 @@ class Picture(object):
                                        optimize=True,
                                        exif=self.exif_data)
         except Exception as e:
-            logging.error(f"Error processing {self.picture_file_name}: {e}")
+            logging.error(f"Error processing {self.picture_file_name}: {e.__traceback__}")
             return
 
-        logging.info(f"Successfully converted {self.picture_file_name} in {(time.time() - start_time) * 1000:.2f} ms. ( {get_pretty_file_size(self.picture_file_path)} > {get_pretty_file_size('/opt/photoprism/originals/' + self.picture_file_name + '.avif')})")
+        logging.info(f"Successfully converted {self.picture_file_name} in {(time.time() - start_time) * 1000:.2f} ms. "
+                     f"({get_pretty_file_size(self.picture_file_path)} > "
+                     f"{get_pretty_file_size('/opt/photoprism/originals/' + self.picture_file_name + '.avif')})")
 
         # Removes input file from the import folder
         os.remove(self.picture_file_path)
