@@ -1,12 +1,8 @@
 import os
-import threading
-import tinydb
-import avif
+from concurrent.futures import ThreadPoolExecutor
 import logging
 
-# Initialize TinyDB database to keep track of converted photos
-db = tinydb.TinyDB("converted_photos.json")
-converted_photos = db.table("photos")
+from picture import Picture
 
 # Configure logging
 logging.basicConfig(
@@ -16,64 +12,24 @@ logging.basicConfig(
 )
 
 
-def convert_to_avif(file_path):
-    # Get the file name from the file path
-    file_name = os.path.basename(file_path)
-
-    # Check if the file has already been converted
-    if converted_photos.search(tinydb.where("file_name") == file_name):
-        logging.info(f"{file_name} has already been converted.")
-        return
-
-    # Open the photo file for reading
-    try:
-        with open(file_path, "rb") as f:
-            image_data = f.read()
-    except Exception as e:
-        logging.error(f"Error reading {file_name}: {e}")
-        return
-
-    # Convert the photo to AVIF format
-    try:
-        avif_image = avif.encode(image_data, lossless=True)
-    except Exception as e:
-        logging.error(f"Error encoding {file_name}: {e}")
-        return
-
-    # Write the AVIF image to disk
-    try:
-        with open(os.path.join("/opt/images-to-avif/output", file_name + ".avif"), "wb") as f:
-            f.write(avif_image)
-    except Exception as e:
-        logging.error(f"Error writing {file_name}: {e}")
-        return
-
-    # Add the photo to the TinyDB database
-    converted_photos.insert({"file_name": file_name})
-    logging.info(f"Successfully converted {file_name}.")
-
-
 def main():
     # Get the list of photo files in the input directory
     input_dir = "/opt/images-to-avif/input"
-    file_paths = [os.path.join(input_dir, file_name) for file_name in os.listdir(input_dir) if
-                  file_name.endswith((".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".heic", ".HEIC"))]
+
+    # Get a list of all image files in the input directory and its subdirectories
+    file_paths = []
+    extension = (".png", ".PNG", ".jpg", ".JPG", ".jpeg", ".JPEG", ".heic", ".HEIC", ".heif", ".HEIF")
+    for root, dirs, files in os.walk(input_dir):
+        for file in files:
+            if file.endswith(tuple(extension)):
+                file_paths.append(os.path.join(root, file))
 
     # Start a separate thread for each photo
-    threads = []
-    for file_path in file_paths:
-        while True:
-            if threading.active_count() < 32:
-                t = threading.Thread(target=convert_to_avif, args=(file_path,))
-                t.start()
-                threads.append(t)
-                break
-            else:
-                continue
-
-    # Wait for all threads to finish
-    for t in threads:
-        t.join()
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        for file_path in file_paths:
+            file_name = os.path.basename(file_path)
+            logging.info(f"Conversion for {file_name} has started.")
+            executor.submit(Picture, file_path)
 
 
 if __name__ == "__main__":
