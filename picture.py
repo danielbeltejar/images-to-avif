@@ -35,6 +35,8 @@ class Picture(object):
             self.picture_file_name = self.picture_file_name.replace(ext, "")
             break
 
+        self.convert()
+
     def convert(self):
         start_time = time.time()
 
@@ -53,3 +55,5 @@ class Picture(object):
 
         # Removes input file from the import folder
         os.remove(self.picture_file_path)
+
+        del self
